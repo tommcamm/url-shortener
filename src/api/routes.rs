@@ -1,10 +1,10 @@
 use axum::{
-    middleware,
-    routing::{get, post},
-    Router,
     extract::State,
     http::StatusCode,
+    middleware,
     response::IntoResponse,
+    routing::{get, post},
+    Router,
 };
 
 use crate::{
@@ -25,17 +25,14 @@ pub fn admin_routes() -> Router<UrlService> {
 }
 
 pub fn health_routes() -> Router<UrlService> {
-    Router::new()
-        .route("/health", get(health_check))
+    Router::new().route("/health", get(health_check))
 }
 
-async fn health_check(
-    State(url_service): State<UrlService>,
-) -> impl IntoResponse {
+async fn health_check(State(url_service): State<UrlService>) -> impl IntoResponse {
     // Check database and cache connectivity
     let db_status = url_service.check_database_connection().await;
     let cache_status = url_service.check_cache_connection().await;
-    
+
     if db_status.is_ok() && cache_status.is_ok() {
         StatusCode::OK
     } else {

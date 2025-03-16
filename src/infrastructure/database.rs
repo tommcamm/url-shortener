@@ -64,15 +64,21 @@ pub async fn get_stats_summary(pool: &PgPool) -> Result<(i64, i64)> {
     let row = sqlx::query!(
         r#"
         SELECT 
-            COUNT(*) as total_urls,
-            COALESCE(SUM(visits), 0) as total_visits
+            COUNT(*) as "total_urls!: i64",
+            COALESCE(SUM(visits), 0) as "total_visits"
         FROM urls
         "#
     )
     .fetch_one(pool)
     .await?;
 
-    Ok((row.total_urls.unwrap_or(0), row.total_visits.unwrap_or(0)))
+    // Convert from BigDecimal to i64 safely
+    let total_visits = row
+        .total_visits
+        .map(|bd| bd.to_string().parse::<i64>().unwrap_or(0))
+        .unwrap_or(0);
+
+    Ok((row.total_urls, total_visits))
 }
 
 pub async fn increment_visits(pool: &PgPool, url_id: Uuid) -> Result<()> {

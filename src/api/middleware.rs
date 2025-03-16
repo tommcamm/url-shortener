@@ -1,5 +1,5 @@
 use axum::{
-    extract::State,
+    body::Body,
     http::{Request, StatusCode},
     middleware::Next,
     response::Response,
@@ -7,11 +7,13 @@ use axum::{
 
 use crate::application::url_service::UrlService;
 
-pub async fn api_key_auth<B>(
-    State(service): State<UrlService>,
-    req: Request<B>,
-    next: Next<B>,
-) -> Result<Response, StatusCode> {
+pub async fn api_key_auth(req: Request<Body>, next: Next) -> Result<Response, StatusCode> {
+    // Extract service from request extensions
+    let service = req
+        .extensions()
+        .get::<UrlService>()
+        .expect("Missing UrlService state");
+
     let api_key = req
         .headers()
         .get("X-API-Key")
