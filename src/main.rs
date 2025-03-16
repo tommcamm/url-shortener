@@ -82,6 +82,16 @@ async fn main() -> anyhow::Result<()> {
     dotenv::dotenv().ok();
     let config = AppConfig::from_env()?;
 
+    // If running in development mode without explicit flag, show warning about detailed errors
+    if config.environment == config::Environment::Development
+        && !std::env::args().any(|arg| arg == "--dev" || arg == "--development")
+    {
+        tracing::warn!("Running in DEVELOPMENT mode without explicit flag - end users will receive detailed error messages");
+        tracing::info!(
+            "TIP: Use --prod flag to switch to production mode with generic error messages"
+        );
+    }
+
     // Initialize PostgreSQL connection pool with retry logic
     tracing::info!("Connecting to PostgreSQL...");
     let postgres_pool = connect_with_retry(

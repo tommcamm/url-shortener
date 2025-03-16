@@ -72,26 +72,50 @@ impl UrlService {
     }
 
     pub async fn get_url(&self, short_code: &str) -> Result<String> {
+        // Log request details
+        tracing::debug!(
+            "Processing URL retrieval request for short code: {}",
+            short_code
+        );
+
         // Try to get URL from cache first
         let cache_key = Cache::url_cache_key(short_code);
         if let Some(url) = self.cache.get(&cache_key).await? {
+            tracing::debug!("URL found in cache for short code: {}", short_code);
             return Ok(url);
         }
 
+        tracing::debug!(
+            "URL not in cache, checking database for short code: {}",
+            short_code
+        );
+
         // If not in cache, get from database
-        let url = database::get_url_by_code(&self.db, short_code)
-            .await?
-            .ok_or_else(|| AppError::NotFound("URL not found".to_string()))?;
+        let url_result = database::get_url_by_code(&self.db, short_code).await?;
 
-        // Cache the URL for future requests
-        self.cache
-            .set_with_expiry(&cache_key, &url.original_url, 3600)
-            .await?;
+        // Check if URL was found
+        if let Some(url) = url_result {
+            tracing::debug!("URL found in database for short code: {}", short_code);
 
-        // Increment visit count
-        database::increment_visits(&self.db, url.id).await?;
+            // Cache the URL for future requests
+            self.cache
+                .set_with_expiry(&cache_key, &url.original_url, 3600)
+                .await?;
 
-        Ok(url.original_url)
+            // Increment visit count
+            database::increment_visits(&self.db, url.id).await?;
+
+            Ok(url.original_url)
+        } else {
+            // Use debug level for 404 errors as requested
+            tracing::debug!(
+                "URL not found in database for short code: {}. This could be because the URL doesn't exist or has expired.",
+                short_code
+            );
+
+            // Maintain the same user-facing error
+            Err(AppError::NotFound("URL not found".to_string()))
+        }
     }
 
     pub async fn get_stats(&self) -> Result<StatsResponse> {

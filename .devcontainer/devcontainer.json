@@ -12,7 +12,8 @@
                 "vadimcn.vscode-lldb",
                 "github.copilot",
                 "ms-azuretools.vscode-docker",
-                "ckolkman.vscode-postgres"
+                "ckolkman.vscode-postgres",
+                "saoudrizwan.claude-dev"
             ],
             "settings": {
                 "editor.formatOnSave": true,

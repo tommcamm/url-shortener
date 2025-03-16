@@ -14,6 +14,10 @@ pub struct Url {
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
+#[schema(example = json!({
+    "url": "https://example.com",
+    "expires_in_days": 1805226240
+}))]
 pub struct CreateUrlRequest {
     pub url: String,
     pub expires_in_days: Option<i32>,
