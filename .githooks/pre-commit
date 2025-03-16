@@ -1,0 +1,21 @@
+#!/bin/bash
+set -e
+
+echo "Running pre-commit checks..."
+
+# Ensure the code compiles without errors
+echo "Checking for compilation errors..."
+if ! cargo check --quiet; then
+  echo "Error: Compilation failed. Please fix the errors before committing."
+  exit 1
+fi
+
+# Check for warnings (unless they're suppressed)
+echo "Checking for warnings..."
+if cargo clippy --quiet | grep -i warning; then
+  echo "Warning: Clippy found warnings. Please fix them or explicitly allow them with #[allow(...)] attributes."
+  exit 1
+fi
+
+echo "All checks passed!"
+exit 0

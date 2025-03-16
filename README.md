@@ -27,7 +27,15 @@ git clone https://github.com/yourusername/tommy-shortener.git
 cd tommy-shortener
 ```
 
-2. The project comes with a `.env` file with default configuration. You can modify these values if needed:
+2. Run the setup script to configure Git hooks for code quality:
+
+```bash
+./setup.sh
+```
+
+This sets up pre-commit hooks that prevent committing code with compilation errors or warnings.
+
+3. The project comes with a `.env` file with default configuration. You can modify these values if needed:
 
 ```
 DATABASE_URL=postgres://shortener:shortener123@postgres:5432/url_shortener
@@ -36,7 +44,7 @@ API_KEY=developer_api_key_for_testing
 BASE_URL=http://localhost:3000
 ```
 
-3. Build and run the application using Docker Compose:
+4. Build and run the application using Docker Compose:
 
 ```bash
 docker compose up
