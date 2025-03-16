@@ -58,18 +58,6 @@ This will:
 - Start the web server on http://localhost:3000
 - Provide health checks for all services
 
-### Development Notes
-
-The project uses SQLx with the "offline" feature for development. This allows Rust Analyzer to check SQL queries without an active database connection. The prepared SQL queries are stored in the `sqlx-data.json` file.
-
-If you modify any SQL queries, you'll need to regenerate this file:
-
-1. Start the database containers: `docker compose up -d postgres`
-2. Run the SQLx prepare command: 
-   ```bash
-   cargo sqlx prepare --database-url postgres://shortener:shortener123@localhost:5432/url_shortener
-   ```
-
 ### Running Locally (Without Docker)
 
 For local development, you can use:
