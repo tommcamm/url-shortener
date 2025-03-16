@@ -5,10 +5,7 @@ use crate::{
     config::AppConfig,
     domain::url::{CreateUrlRequest, CreateUrlResponse, StatsResponse},
     error::{AppError, Result},
-    infrastructure::{
-        cache::Cache,
-        database,
-    },
+    infrastructure::{cache::Cache, database},
 };
 use sqlx::PgPool;
 
@@ -30,11 +27,27 @@ impl UrlService {
 
     pub async fn create_short_url(&self, request: CreateUrlRequest) -> Result<CreateUrlResponse> {
         let short_code = nanoid!(8);
-        
-        // Calculate expiration date if provided
-        let expires_at = request.expires_in_days.map(|days| {
-            time::OffsetDateTime::now_utc() + Duration::days(days as i64)
-        });
+
+        // Calculate expiration date if provided, with safety limits
+        let expires_at = if let Some(days) = request.expires_in_days {
+            // Limit to reasonable range to avoid overflow
+            let days = days.clamp(0, 365 * 10); // Max 10 years
+
+            // Safely calculate expiration date
+            let now = time::OffsetDateTime::now_utc();
+            match now.checked_add(Duration::days(days as i64)) {
+                Some(expiry) => Some(expiry),
+                None => {
+                    // Fallback to a sensible maximum if calculation fails
+                    let max_date = time::OffsetDateTime::now_utc()
+                        .replace_year(now.year() + 10)
+                        .unwrap_or(now);
+                    Some(max_date)
+                }
+            }
+        } else {
+            None
+        };
 
         // Create URL in database
         let url = database::create_url(&self.db, &request.url, &short_code, expires_at).await?;
@@ -87,7 +100,7 @@ impl UrlService {
             urls,
         })
     }
-    
+
     pub async fn check_database_connection(&self) -> anyhow::Result<()> {
         // Simple query to check DB connectivity
         sqlx::query("SELECT 1")
@@ -96,10 +109,12 @@ impl UrlService {
             .map(|_| ())
             .map_err(|e| anyhow::anyhow!("Database connection check failed: {}", e))
     }
-    
+
     pub async fn check_cache_connection(&self) -> anyhow::Result<()> {
         // Use the ping method to check Redis connectivity
-        self.cache.ping().await
+        self.cache
+            .ping()
+            .await
             .map_err(|e| anyhow::anyhow!("Redis connection check failed: {}", e))
     }
 }

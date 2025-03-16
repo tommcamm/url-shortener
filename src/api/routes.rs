@@ -15,7 +15,7 @@ use crate::{
 pub fn url_routes() -> Router<UrlService> {
     Router::new()
         .route("/api/urls", post(handlers::create_short_url))
-        .route("/:short_code", get(handlers::redirect_to_url))
+        .route("/{short_code}", get(handlers::redirect_to_url))
 }
 
 pub fn admin_routes() -> Router<UrlService> {

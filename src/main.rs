@@ -7,7 +7,10 @@ mod infrastructure;
 mod models;
 
 use crate::{
-    api::routes::{admin_routes, health_routes, url_routes},
+    api::{
+        api_docs::swagger_routes,
+        routes::{admin_routes, health_routes, url_routes},
+    },
     application::url_service::UrlService,
     config::AppConfig,
     infrastructure::cache::Cache,
@@ -92,11 +95,8 @@ async fn main() -> anyhow::Result<()> {
     )
     .await?;
 
-    // Run migrations
-    tracing::info!("Running database migrations...");
-    sqlx::query(include_str!("../migrations/20240214_create_urls_table.sql"))
-        .execute(&postgres_pool)
-        .await?;
+    // Run migrations if needed
+    infrastructure::migrations::run_migrations_if_needed(&postgres_pool).await?;
 
     // Initialize Redis client with retry logic
     tracing::info!("Connecting to Redis...");
@@ -113,6 +113,7 @@ async fn main() -> anyhow::Result<()> {
         .merge(health_routes())
         .merge(url_routes())
         .merge(admin_routes())
+        .merge(swagger_routes()) // Add Swagger UI routes
         .layer(TraceLayer::new_for_http())
         .with_state(url_service);
 
