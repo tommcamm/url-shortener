@@ -7,7 +7,7 @@ mod infrastructure;
 mod models;
 
 use crate::{
-    api::routes::{admin_routes, url_routes},
+    api::routes::{admin_routes, url_routes, health_routes},
     application::url_service::UrlService,
     config::AppConfig,
     infrastructure::cache::Cache,
@@ -16,6 +16,56 @@ use axum::Router;
 use std::net::SocketAddr;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+async fn connect_with_retry<F, Fut, T, E>(
+    connect_fn: F,
+    max_attempts: usize,
+    service_name: &str,
+) -> Result<T, anyhow::Error>
+where
+    F: Fn() -> Fut,
+    Fut: std::future::Future<Output = Result<T, E>>,
+    E: std::fmt::Display + std::error::Error + Send + Sync + 'static,
+{
+    let mut attempt = 1;
+    let mut delay = std::time::Duration::from_millis(100);
+
+    loop {
+        match connect_fn().await {
+            Ok(conn) => {
+                tracing::info!("Successfully connected to {}", service_name);
+                return Ok(conn);
+            }
+            Err(err) => {
+                if attempt >= max_attempts {
+                    return Err(anyhow::anyhow!(
+                        "Failed to connect to {} after {} attempts: {}",
+                        service_name,
+                        max_attempts,
+                        err
+                    ));
+                }
+
+                tracing::warn!(
+                    "Failed to connect to {} (attempt {}/{}): {}. Retrying in {:?}...",
+                    service_name,
+                    attempt,
+                    max_attempts,
+                    err,
+                    delay
+                );
+
+                tokio::time::sleep(delay).await;
+                attempt += 1;
+                // Exponential backoff with jitter
+                delay = std::time::Duration::from_millis(
+                    (delay.as_millis() as u64 * 2).min(5000)
+                        + (rand::random::<u64>() % 100),
+                );
+            }
+        }
+    }
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -32,25 +82,18 @@ async fn main() -> anyhow::Result<()> {
     dotenv::dotenv().ok();
     let config = AppConfig::from_env()?;
 
-    // Start PostgreSQL and Redis containers
-    tracing::info!("Starting Docker containers...");
-    let docker_status = std::process::Command::new("docker-compose")
-        .arg("up")
-        .arg("-d")
-        .status()?;
-
-    if !docker_status.success() {
-        anyhow::bail!("Failed to start Docker containers");
-    }
-
-    // Wait a bit for services to be ready
-    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-
-    // Initialize PostgreSQL connection pool
-    let postgres_pool = sqlx::postgres::PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&config.database_url)
-        .await?;
+    // Initialize PostgreSQL connection pool with retry logic
+    tracing::info!("Connecting to PostgreSQL...");
+    let postgres_pool = connect_with_retry(
+        || {
+            sqlx::postgres::PgPoolOptions::new()
+                .max_connections(5)
+                .connect(&config.database_url)
+        },
+        30, // Increased retry attempts for container startup
+        "PostgreSQL",
+    )
+    .await?;
 
     // Run migrations
     tracing::info!("Running database migrations...");
@@ -58,10 +101,14 @@ async fn main() -> anyhow::Result<()> {
         .execute(&postgres_pool)
         .await?;
 
-    // Initialize Redis client
+    // Initialize Redis client with retry logic
+    tracing::info!("Connecting to Redis...");
     let redis_client = redis::Client::open(config.redis_url.clone())?;
-    let redis_conn = redis_client.get_connection_manager()
-        .await.expect("Failed to connect to Redis");
+    let redis_conn = connect_with_retry(
+        || redis_client.get_connection_manager(),
+        10,
+        "Redis"
+    ).await?;
     let cache = Cache::new(redis_conn);
 
     // Initialize URL service
@@ -69,14 +116,15 @@ async fn main() -> anyhow::Result<()> {
 
     // Create router with all routes
     let app = Router::new()
+        .merge(health_routes())
         .merge(url_routes())
         .merge(admin_routes())
         .layer(TraceLayer::new_for_http())
         .with_state(url_service);
 
     // Start server
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;
-    tracing::info!("listening on 127.0.0.1:3000");
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
+    tracing::info!("listening on 0.0.0.0:3000");
     axum::serve(listener, app).await?;
     Ok(())
 }

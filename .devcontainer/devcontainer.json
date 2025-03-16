@@ -1,0 +1,32 @@
+{
+    "name": "Rust URL Shortener Dev Environment",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "app",
+    "workspaceFolder": "/workspace",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "rust-lang.rust-analyzer",
+                "tamasfe.even-better-toml",
+                "serayuzgur.crates",
+                "vadimcn.vscode-lldb",
+                "github.copilot"
+            ],
+            "settings": {
+                "editor.formatOnSave": true,
+                "rust-analyzer.checkOnSave.command": "clippy"
+            }
+        }
+    },
+    "remoteUser": "root",
+    "forwardPorts": [3000, 5432, 6379],
+    "postCreateCommand": "sleep 5 && sqlx database reset -y",
+    "features": {
+        "github-cli": "latest",
+        "common": {
+            "username": "vscode",
+            "uid": 1000,
+            "gid": 1000
+        }
+    }
+}

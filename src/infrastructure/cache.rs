@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use redis::aio::ConnectionManager;
-use redis::AsyncCommands;
+use redis::{AsyncCommands, cmd};
 use tokio::sync::Mutex;
 
 use crate::error::Result;
@@ -31,5 +31,11 @@ impl Cache {
 
     pub fn url_cache_key(short_code: &str) -> String {
         format!("url:{}", short_code)
-    }   
+    }
+    
+    pub async fn ping(&self) -> Result<()> {
+        let mut conn = self.client.lock().await;
+        redis::cmd("PING").query_async(&mut *conn).await?;
+        Ok(())
+    }
 }

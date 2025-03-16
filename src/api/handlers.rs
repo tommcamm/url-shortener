@@ -1,6 +1,7 @@
 use axum::{
     extract::{Path, State},
     http::StatusCode,
+    response::{Redirect, IntoResponse},
     Json,
 };
 
@@ -21,9 +22,9 @@ pub async fn create_short_url(
 pub async fn redirect_to_url(
     State(service): State<UrlService>,
     Path(short_code): Path<String>,
-) -> Result<(StatusCode, String)> {
+) -> Result<impl IntoResponse> {
     let url = service.get_url(&short_code).await?;
-    Ok((StatusCode::TEMPORARY_REDIRECT, url))
+    Ok(Redirect::temporary(&url))
 }
 
 pub async fn get_stats(

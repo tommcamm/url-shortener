@@ -72,7 +72,7 @@ pub async fn get_stats_summary(pool: &PgPool) -> Result<(i64, i64)> {
     .fetch_one(pool)
     .await?;
 
-    Ok((row.total_urls, row.total_visits.unwrap_or(0) as i64))
+    Ok((row.total_urls.unwrap_or(0), row.total_visits.unwrap_or(0)))
 }
 
 pub async fn increment_visits(pool: &PgPool, url_id: Uuid) -> Result<()> {

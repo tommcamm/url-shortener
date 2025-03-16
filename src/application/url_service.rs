@@ -87,4 +87,19 @@ impl UrlService {
             urls,
         })
     }
+    
+    pub async fn check_database_connection(&self) -> anyhow::Result<()> {
+        // Simple query to check DB connectivity
+        sqlx::query("SELECT 1")
+            .execute(&self.db)
+            .await
+            .map(|_| ())
+            .map_err(|e| anyhow::anyhow!("Database connection check failed: {}", e))
+    }
+    
+    pub async fn check_cache_connection(&self) -> anyhow::Result<()> {
+        // Use the ping method to check Redis connectivity
+        self.cache.ping().await
+            .map_err(|e| anyhow::anyhow!("Redis connection check failed: {}", e))
+    }
 }
