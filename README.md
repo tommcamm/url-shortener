@@ -1,6 +1,6 @@
 # Tommy URL Shortener
 
-[![Rust](https://img.shields.io/badge/Rust-1.76+-orange)](https://www.rust-lang.org/)
+[![Rust](https://img.shields.io/badge/Rust-1.85+-orange)](https://www.rust-lang.org/)
 [![Axum](https://img.shields.io/badge/Axum-0.8.1-blue)](https://github.com/tokio-rs/axum)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Latest-blue)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-Latest-red)](https://redis.io/)
