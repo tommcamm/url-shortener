@@ -25,6 +25,10 @@ impl UrlService {
         &self.config.api_key
     }
 
+    pub fn get_environment(&self) -> &crate::config::Environment {
+        &self.config.environment
+    }
+
     pub async fn create_short_url(&self, request: CreateUrlRequest) -> Result<CreateUrlResponse> {
         let short_code = nanoid!(8);
 

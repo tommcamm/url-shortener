@@ -96,6 +96,20 @@ impl AppError {
     }
 }
 
+pub struct ErrorResponse {
+    error: AppError,
+    environment: Environment,
+}
+
+impl ErrorResponse {
+    pub fn new(error: AppError, environment: &Environment) -> Self {
+        Self {
+            error,
+            environment: environment.clone(),
+        }
+    }
+}
+
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         // Always log the error
@@ -111,10 +125,36 @@ impl IntoResponse for AppError {
             AppError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
-        // For simplicity, assume development environment in this context
-        // In a real implementation, you would access the config from application state
-        let env = Environment::Development;
+        // Default to production behavior if environment is not explicitly provided
+        // This is safer for production use
+        let env = Environment::Production;
         let message = self.user_message(&env);
+
+        let body = Json(json!({
+            "error": message
+        }));
+
+        (status, body).into_response()
+    }
+}
+
+impl IntoResponse for ErrorResponse {
+    fn into_response(self) -> Response {
+        // Always log the error
+        self.error.log_error();
+
+        // Determine status code
+        let status = match self.error {
+            AppError::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Redis(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::NotFound(_) => StatusCode::NOT_FOUND,
+            AppError::Unauthorized => StatusCode::UNAUTHORIZED,
+            AppError::BadRequest(_) => StatusCode::BAD_REQUEST,
+            AppError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+
+        // Use the environment from the application state
+        let message = self.error.user_message(&self.environment);
 
         let body = Json(json!({
             "error": message

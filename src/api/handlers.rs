@@ -8,7 +8,7 @@ use axum::{
 use crate::{
     application::url_service::UrlService,
     domain::url::{CreateUrlRequest, CreateUrlResponse, StatsResponse},
-    error::Result,
+    error::ErrorResponse,
 };
 
 /// Create a short URL
@@ -29,14 +29,14 @@ pub async fn create_short_url(
     State(service): State<UrlService>,
     Json(request): Json<CreateUrlRequest>,
 ) -> impl IntoResponse {
+    // Debug log the request
+    tracing::debug!("Received create short URL request: {:?}", request);
+
     match service.create_short_url(request).await {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
         Err(err) => {
-            // Log the error
-            tracing::error!("Error creating short URL: {:?}", err);
-
-            // Convert the error to a response
-            err.into_response()
+            // Create error response with environment
+            ErrorResponse::new(err, service.get_environment()).into_response()
         }
     }
 }
@@ -61,14 +61,14 @@ pub async fn redirect_to_url(
     State(service): State<UrlService>,
     Path(short_code): Path<String>,
 ) -> impl IntoResponse {
+    // Debug log the request
+    tracing::debug!("Received redirect request for short code: {}", short_code);
+
     match service.get_url(&short_code).await {
         Ok(url) => Redirect::temporary(&url).into_response(),
         Err(err) => {
-            // Log the error
-            tracing::error!("Error redirecting to URL: {:?}", err);
-
-            // Convert the error to a response
-            err.into_response()
+            // Create error response with environment
+            ErrorResponse::new(err, service.get_environment()).into_response()
         }
     }
 }
@@ -87,14 +87,14 @@ pub async fn redirect_to_url(
     tag = "URL Shortener API"
 )]
 pub async fn get_stats(State(service): State<UrlService>) -> impl IntoResponse {
+    // Debug log the request
+    tracing::debug!("Received stats request");
+
     match service.get_stats().await {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
         Err(err) => {
-            // Log the error
-            tracing::error!("Error getting stats: {:?}", err);
-
-            // Convert the error to a response
-            err.into_response()
+            // Create error response with environment
+            ErrorResponse::new(err, service.get_environment()).into_response()
         }
     }
 }
