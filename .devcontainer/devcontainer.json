@@ -8,9 +8,11 @@
             "extensions": [
                 "rust-lang.rust-analyzer",
                 "tamasfe.even-better-toml",
-                "serayuzgur.crates",
+                "fill-labs.dependi",
                 "vadimcn.vscode-lldb",
-                "github.copilot"
+                "github.copilot",
+                "ms-azuretools.vscode-docker",
+                "ckolkman.vscode-postgres"
             ],
             "settings": {
                 "editor.formatOnSave": true,
@@ -19,7 +21,11 @@
         }
     },
     "remoteUser": "root",
-    "forwardPorts": [3000, 5432, 6379],
+    "forwardPorts": [
+        3000,
+        5432,
+        6379
+    ],
     "postCreateCommand": "sleep 5 && sqlx database reset -y",
     "features": {
         "github-cli": "latest",

@@ -7,13 +7,12 @@ mod infrastructure;
 mod models;
 
 use crate::{
-    api::routes::{admin_routes, url_routes, health_routes},
+    api::routes::{admin_routes, health_routes, url_routes},
     application::url_service::UrlService,
     config::AppConfig,
     infrastructure::cache::Cache,
 };
 use axum::Router;
-use std::net::SocketAddr;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -59,8 +58,7 @@ where
                 attempt += 1;
                 // Exponential backoff with jitter
                 delay = std::time::Duration::from_millis(
-                    (delay.as_millis() as u64 * 2).min(5000)
-                        + (rand::random::<u64>() % 100),
+                    (delay.as_millis() as u64 * 2).min(5000) + (rand::random::<u64>() % 100),
                 );
             }
         }
@@ -72,8 +70,7 @@ async fn main() -> anyhow::Result<()> {
     // Initialize tracing
     tracing_subscriber::registry()
         .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info".into()),
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -104,11 +101,8 @@ async fn main() -> anyhow::Result<()> {
     // Initialize Redis client with retry logic
     tracing::info!("Connecting to Redis...");
     let redis_client = redis::Client::open(config.redis_url.clone())?;
-    let redis_conn = connect_with_retry(
-        || redis_client.get_connection_manager(),
-        10,
-        "Redis"
-    ).await?;
+    let redis_conn =
+        connect_with_retry(|| redis_client.get_connection_manager(), 10, "Redis").await?;
     let cache = Cache::new(redis_conn);
 
     // Initialize URL service

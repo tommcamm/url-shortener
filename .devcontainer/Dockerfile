@@ -1,4 +1,4 @@
-FROM rust:1.76
+FROM rust:1.85
 
 # Install additional development tools
 RUN apt-get update && apt-get install -y \
@@ -9,6 +9,9 @@ RUN apt-get update && apt-get install -y \
 
 # Install Rust tooling
 RUN rustup component add rustfmt clippy rust-analyzer
+
+# Set up the workspace
+RUN cargo install sqlx-cli
 
 WORKDIR /workspace
 
