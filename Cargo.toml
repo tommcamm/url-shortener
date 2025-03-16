@@ -2,6 +2,9 @@
 name = "tommy-shortener"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+authors = ["tommcamm"]
+repository = "https://github.com/tommcamm/url-shortener"
 
 [dependencies]
 axum = { version = "0.8.1", features = ["macros"] }
