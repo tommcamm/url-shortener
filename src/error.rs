@@ -6,6 +6,8 @@ use axum::{
 use serde_json::json;
 use thiserror::Error;
 
+// Allow unused variants as they might be used in the future
+#[allow(dead_code)]
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("Database error: {0}")]
@@ -41,9 +43,7 @@ impl IntoResponse for AppError {
             AppError::NotFound(ref message) => (StatusCode::NOT_FOUND, message.clone()),
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, "Unauthorized".to_string()),
             AppError::BadRequest(ref message) => (StatusCode::BAD_REQUEST, message.clone()),
-            AppError::Internal(ref message) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, message.clone())
-            }
+            AppError::Internal(ref message) => (StatusCode::INTERNAL_SERVER_ERROR, message.clone()),
         };
 
         let body = Json(json!({

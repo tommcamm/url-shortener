@@ -1,7 +1,6 @@
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
-    response::{Redirect, IntoResponse},
+    response::{IntoResponse, Redirect},
     Json,
 };
 
@@ -27,9 +26,7 @@ pub async fn redirect_to_url(
     Ok(Redirect::temporary(&url))
 }
 
-pub async fn get_stats(
-    State(service): State<UrlService>
-) -> Result<Json<StatsResponse>> {
+pub async fn get_stats(State(service): State<UrlService>) -> Result<Json<StatsResponse>> {
     let response = service.get_stats().await?;
     Ok(Json(response))
 }
